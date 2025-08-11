@@ -1,0 +1,48 @@
+version: 0.2
+
+env:
+  variables:
+    TERRAFORM_VERSION: "1.12.2"
+    TF_COMMAND: "apply"
+  parameter-store:
+    AWS_ACCESS_KEY_ID: "/CodeBuild/MY_AWS_ACCESS_KEY_ID"
+    AWS_SECRET_ACCESS_KEY: "/CodeBuild/MY_AWS_SECRET_ACCESS_KEY"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    on-failure: ABORT
+    commands:
+      - echo "Installing Terraform ${TERRAFORM_VERSION}..."
+      - wget https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+      - unzip terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+      - mv terraform /usr/local/bin/
+      - terraform --version
+
+  pre_build:
+    on-failure: ABORT
+    commands:
+      - echo "Terraform execution started on $(date)"
+      - ls -lrt "$CODEBUILD_SRC_DIR"
+
+  build:
+    on-failure: ABORT
+    commands:
+      - echo "Starting Terraform deployment..."
+      - terraform init -input=false --backend-config=dev.conf
+      - terraform validate
+      - terraform plan -lock=false -input=false -var-file=dev.tfvars
+      - terraform ${TF_COMMAND} -input=false -var-file=dev.tfvars -auto-approve
+
+  post_build:
+    on-failure: CONTINUE
+    commands:
+      - echo "Terraform execution completed on $(date)"
+      - echo "Cleaning up temporary files..."
+      - rm -f terraform_${TERRAFORM_VERSION}_linux_amd64.zip
+
+artifacts:
+  files:
+    - '**/*'
+  discard-paths: no
