@@ -70,6 +70,11 @@ resource "aws_route_table_association" "one" {
   route_table_id = aws_route_table.Public-Route-table.id
 }
 
+resource "aws_route_table_association" "two" {
+  subnet_id = aws_subnet.public-subnet1.id
+  route_table_id = aws_route_table.Public-Route-table.id
+}
+
 module "security-group" {
   source  = "terraform-aws-modules/security-group/aws"
   version = "5.3.0"
@@ -170,4 +175,5 @@ resource "aws_lb_target_group_attachment" "test" {
 
 output "alb_arn" {
   value = aws_lb.test.dns_name
+
 }
